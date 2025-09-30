@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caffeine Level Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        h1 {
+            color: #ffffff;
+            text-align: center;
+        }
+        .container {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="datetime-local"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            box-sizing: border-box;
+            background-color: #2d2d2d;
+            color: #ffffff;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .log-entry {
+            border-bottom: 1px solid #333;
+            padding: 10px 0;
+        }
+        .current-level {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #1a2e22;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .log-value {
+            font-family: monospace;
+            font-size: 24px;
+            letter-spacing: 2px;
+            color: #4CAF50;
+        }
+        .history {
+            margin-top: 20px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .timestamp {
+            color: #aaa;
+            font-size: 0.9em;
+        }
+        #historyLog {
+            color: #cccccc;
+        }
+        .resistance-time {
+            font-size: 18px;
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #2e1a2e;
+            border-radius: 4px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Caffeine Level Monitor</h1>
+        
+        <div class="form-group">
+            <label for="entryTime">Time of Consumption</label>
+            <input type="datetime-local" id="entryTime">
+        </div>
+        
+        <div class="form-group">
+            <label for="caffeineAmount">Caffeine Amount (mg)</label>
+            <input type="number" id="caffeineAmount" min="0" step="1">
+        </div>
+        
+        <button onclick="addEntry()">Add Entry</button>
+        <button onclick="clearAll()" style="background-color: #f44336; margin-left: 10px;">Clear All</button>
+        <button onclick="fullscreen()">Fullscreen</button>
+        
+        <div id="resistanceTime" class="resistance-time">
+            I have resisted temptation for <span id="timeSinceLastIntake">0 seconds</span>.
+        </div>
+        
+        <div id="currentLevel" class="current-level">
+            Current body caffeine level: 0 mg<br>
+            Log value: <span class="log-value">000</span>
+        </div>
+        
+        <div class="history">
+            <h2>Consumption History</h2>
+            <div id="historyLog"></div>
+        </div>
+    </div>
+
+    <script>
+        // Store entries in localStorage
+        const STORAGE_KEY = 'caffeineEntries';
+        const INITIAL_STORAGE_KEY = 'initialCaffeine';
+        
+        // Half-life of caffeine in hours
+        const HALF_LIFE = 3;
+        let totalCaffeine;
+        
+        // Load entries from localStorage on page load
+        window.onload = function() {
+            loadEntries();
+            updateCurrentLevel();
+            updateResistanceTime();
+        };
+        
+        function loadEntries() {
+            const entries = getEntries();
+            const historyLog = document.getElementById('historyLog');
+            historyLog.innerHTML = '';
+            
+            if (entries.length === 0) {
+                historyLog.innerHTML = '<p>No entries yet.</p>';
+                return;
+            }
+            
+            entries.reverse().forEach(entry => {
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'log-entry';
+                const date = new Date(entry.time);
+                entryDiv.innerHTML = `
+                    <div><strong>${entry.amount} mg (total: ${entry.total.toFixed(2)} mg)</strong></div>
+                    <div class="timestamp">${date.toLocaleString()}</div>
+                `;
+                historyLog.appendChild(entryDiv);
+            });
+        }
+        
+        function getEntries() {
+            const entriesJson = localStorage.getItem(STORAGE_KEY);
+            return entriesJson ? JSON.parse(entriesJson) : [];
+        }
+        
+        function saveEntries(entries) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        }
+        
+        function addEntry() {
+            const amountInput = document.getElementById('caffeineAmount');
+            const timeInput = document.getElementById('entryTime');
+            
+            const amount = parseFloat(amountInput.value);
+            const time = timeInput.value;
+            
+            if (!time) {
+                alert('Please enter a time');
+                return;
+            }
+            
+            if (isNaN(amount) || amount <= 0) {
+                alert('Please enter a valid caffeine amount');
+                return;
+            }
+            
+            // Add new entry
+            const entries = getEntries();
+            entries.push({
+                amount: amount,
+                total: amount + totalCaffeine,
+                time: time
+            });
+            saveEntries(entries);
+            
+            // Clear inputs
+            amountInput.value = '';
+            timeInput.value = '';
+            
+            // Refresh display
+            loadEntries();
+            updateCurrentLevel();
+            updateResistanceTime();
+        }
+        
+        function clearAll() {
+            if (confirm('Are you sure you want to clear all data?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(INITIAL_STORAGE_KEY);
+                document.getElementById('historyLog').innerHTML = '<p>No entries yet.</p>';
+                updateCurrentLevel();
+                updateResistanceTime();
+            }
+        }
+        
+        function updateCurrentLevel() {
+            const entries = getEntries();
+            
+            totalCaffeine = 0;
+            const now = new Date();
+            
+            entries.forEach(entry => {
+                const entryTime = new Date(entry.time);
+                const hoursPassed = (now - entryTime) / (1000 * 60 * 60);
+                
+                if (hoursPassed >= 0) {
+                    // Calculate remaining caffeine using half-life formula
+                    const remainingFraction = Math.pow(0.5, hoursPassed / HALF_LIFE);
+                    totalCaffeine += entry.amount * remainingFraction;
+                }
+            });
+            
+            // Calculate log value
+            const caffeineMicrograms = totalCaffeine * 1000;
+            let logValue;
+            
+            if (caffeineMicrograms <= 0) {
+                logValue = '000';
+            } else {
+                // Logarithm base 10^(1/100) is equivalent to 100 * log10(x)
+                const log = 100 * Math.log10(caffeineMicrograms);
+                logValue = Math.floor(log).toString().padStart(3, '0');
+                // Ensure it's exactly 3 digits
+                logValue = logValue.slice(-3);
+            }
+            
+            // Update display
+            const currentLevelDiv = document.getElementById('currentLevel');
+            currentLevelDiv.innerHTML = `
+                Current body caffeine level: ${totalCaffeine.toFixed(4 - parseInt(Math.log10(totalCaffeine)))} mg<br>
+                Log value: <span class="log-value">${logValue}</span>
+            `;
+        }
+        
+        function updateResistanceTime() {
+            const entries = getEntries();
+            const now = new Date();
+            const resistanceElement = document.getElementById('timeSinceLastIntake');
+            
+            if (entries.length === 0) {
+                resistanceElement.textContent = "0 seconds";
+                return;
+            }
+            
+            // Get the most recent entry
+            const lastEntry = entries.reduce((latest, entry) => {
+                const entryTime = new Date(entry.time);
+                return (!latest || entryTime > new Date(latest.time)) ? entry : latest;
+            }, null);
+            
+            if (!lastEntry) {
+                resistanceElement.textContent = "0 seconds";
+                return;
+            }
+            
+            const lastIntakeTime = new Date(lastEntry.time);
+            const secondsPassed = Math.floor((now - lastIntakeTime) / 1000);
+            
+            // Format the time in a human-readable way
+            const days = Math.floor(secondsPassed / (3600 * 24));
+            const hours = Math.floor((secondsPassed % (3600 * 24)) / 3600);
+            const minutes = Math.floor((secondsPassed % 3600) / 60);
+            const seconds = secondsPassed % 60;
+            
+            let timeString = '';
+            if (days > 0) timeString += `${days} day${days > 1 ? 's' : ''}, `;
+            if (hours > 0 || days > 0) timeString += `${hours} hour${hours !== 1 ? 's' : ''}, `;
+            if (minutes > 0 || hours > 0 || days > 0) timeString += `${minutes} minute${minutes !== 1 ? 's' : ''}, `;
+            timeString += `${seconds} second${seconds !== 1 ? 's' : ''}`;
+            
+            resistanceElement.textContent = timeString;
+        }
+        
+        function fullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        
+        let intervid;
+        clearInterval(intervid);
+        intervid = setInterval(() => {
+            updateCurrentLevel();
+            updateResistanceTime();
+        }, 100);
+    </script>
+</body>
+</html>
