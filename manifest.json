@@ -1,6 +1,6 @@
 {
-    "name": "Caffeine Level Monitor",
-    "short_name": "Caffeine Monitor",
+    "name": "Cafevel",
+    "short_name": "Cafevel",
     "description": "Track your caffeine intake and monitor your body's caffeine levels.",
     "start_url": "./index.html",
     "display": "standalone",
