@@ -1,11 +1,11 @@
 // sw.js
 const CACHE_NAME = 'caffeine-monitor-cache-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192x192.png',
-  '/icon-512x512.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-192x192.png',
+  './icon-512x512.png'
 ];
 
 // Install event: Cache essential files
@@ -50,7 +50,7 @@ self.addEventListener('fetch', event => {
         // Otherwise, fetch from network
         return fetch(event.request).catch(() => {
           // Fallback for offline HTML page (optional)
-          return caches.match('/index.html');
+          return caches.match('./index.html');
         });
       })
   );
