@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'caffeine-monitor-cache-v20250930-1614';
+const CACHE_NAME = 'caffeine-monitor-cache-v20250930-1625';
 const urlsToCache = [
   './',
   './index.html',
