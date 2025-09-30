@@ -10,9 +10,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Caffeine Level Monitor</title>
     <!-- Link to Web App Manifest -->
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <!-- Fallback for Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="/icon-192x192.png">
+    <link rel="apple-touch-icon" href="./icon-192x192.png">
     <!-- Existing Styles (unchanged) -->
     <style>
         body {
@@ -140,7 +140,7 @@
         // Register Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
+                navigator.serviceWorker.register('./sw.js')
                     .then(reg => console.log('Service Worker registered:', reg))
                     .catch(err => console.error('Service Worker registration failed:', err));
             });
